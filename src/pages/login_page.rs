@@ -11,6 +11,10 @@ pub struct LoginPage {
     error_message: By,
 }
 
+// Реализуем требуемые трейты для потокобезопасности
+// WebDriver уже реализует Send + Sync
+unsafe impl Sync for LoginPage {}
+
 impl LoginPage {
     pub fn new(driver: WebDriver) -> Self {
         Self {
