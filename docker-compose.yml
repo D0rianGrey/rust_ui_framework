@@ -1,0 +1,62 @@
+version: '3'
+
+services:
+  # Selenium Hub
+  selenium-hub:
+    image: selenium/hub:4.10.0
+    container_name: selenium-hub
+    ports:
+      - "4442:4442"
+      - "4443:4443"
+      - "4444:4444"
+    environment:
+      - GRID_MAX_SESSION=5
+      - GRID_BROWSER_TIMEOUT=300
+      - GRID_TIMEOUT=300
+
+  # Chrome Node
+  chrome:
+    image: selenium/node-chrome:4.10.0
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+      - SE_NODE_MAX_SESSIONS=5
+    ports:
+      - "5900:5900"  # VNC порт для отладки
+    volumes:
+      - /dev/shm:/dev/shm  # Общий том для повышения производительности
+    shm_size: 2g
+
+  # Firefox Node
+  firefox:
+    image: selenium/node-firefox:4.10.0
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+      - SE_NODE_MAX_SESSIONS=5
+    ports:
+      - "5901:5900"  # VNC порт для отладки
+    volumes:
+      - /dev/shm:/dev/shm  # Общий том для повышения производительности
+    shm_size: 2g
+
+  # Наше приложение для тестирования
+  test-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - selenium-hub
+      - chrome
+      - firefox
+    environment:
+      - CONFIG_PATH=/app/config/default.toml
+      - RUST_LOG=info
+    volumes:
+      - ./results:/app/results  # Том для сохранения результатов тестов

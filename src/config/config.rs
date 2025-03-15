@@ -1,5 +1,5 @@
-use config::{Config, ConfigError, File};
 use serde::Deserialize;
+use config::{Config, ConfigError, File};
 use std::path::Path;
 
 #[derive(Debug, Deserialize)]
@@ -18,20 +18,24 @@ pub struct BrowserConfig {
 pub struct EnvironmentConfig {
     pub base_url: String,
     pub timeout: u64,
+    #[serde(default)]
+    pub selenium_url: String,
 }
 
 impl AppConfig {
     pub fn new() -> Result<Self, ConfigError> {
-        let config_path =
-            std::env::var("CONFIG_PATH").unwrap_or_else(|_| String::from("config/default.toml"));
-
+        let config_path = std::env::var("CONFIG_PATH")
+            .unwrap_or_else(|_| String::from("config/default.toml"));
+        
         let path = Path::new(&config_path);
         if !path.exists() {
             eprintln!("Файл конфигурации не найден: {}", config_path);
         }
-
-        let config = Config::builder().add_source(File::from(path)).build()?;
-
+        
+        let config = Config::builder()
+            .add_source(File::from(path))
+            .build()?;
+            
         config.try_deserialize()
     }
 }

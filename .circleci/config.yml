@@ -1,0 +1,69 @@
+version: 2.1
+
+orbs:
+  rust: circleci/rust@1.5.0
+
+jobs:
+  build:
+    docker:
+      - image: cimg/rust:1.70.0
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y libssl-dev
+      - rust/install:
+          version: 1.70.0
+      - rust/build:
+          release: true
+      - persist_to_workspace:
+          root: target
+          paths:
+            - release/rust_ui_framework
+
+  test:
+    docker:
+      - image: cimg/rust:1.70.0-browsers
+      - image: selenium/standalone-chrome:4.10.0
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ./target
+      - run:
+          name: Prepare config
+          command: |
+            mkdir -p config
+            echo '[browser]' > config/ci.toml
+            echo 'name = "chrome"' >> config/ci.toml
+            echo 'headless = true' >> config/ci.toml
+            echo '' >> config/ci.toml
+            echo '[environment]' >> config/ci.toml
+            echo 'base_url = "https://www.saucedemo.com"' >> config/ci.toml
+            echo 'timeout = 30' >> config/ci.toml
+            echo 'selenium_url = "http://localhost:4444"' >> config/ci.toml
+      - run:
+          name: Wait for Selenium
+          command: |
+            for i in $(seq 1 10); do
+              nc -z localhost 4444 && echo Success && exit 0
+              echo -n .
+              sleep 1
+            done
+            echo Failed waiting for Selenium && exit 1
+      - run:
+          name: Run tests
+          command: |
+            export CONFIG_PATH=config/ci.toml
+            export RUST_LOG=info
+            cargo test -- --nocapture
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build

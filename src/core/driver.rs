@@ -3,34 +3,58 @@ use log::info;
 use thirtyfour::prelude::*;
 use std::time::Duration;
 
+use crate::config::config::AppConfig;
+
 pub struct DriverManager {
     driver: WebDriver,
 }
 
 impl DriverManager {
-    pub async fn new(browser_name: &str) -> Result<Self> {
-        info!("Инициализация драйвера для браузера: {}", browser_name);
+    pub async fn new(config: &AppConfig) -> Result<Self> {
+        let browser_name = &config.browser.name;
+        let selenium_url = match config.environment.selenium_url.as_ref() {
+            "" => "http://localhost:4444",
+            url => url,
+        };
         
-        // Создаем общие capabilities
-        let mut caps = Capabilities::new();
+        info!("Инициализация драйвера для браузера: {} на {}", browser_name, selenium_url);
         
-        // Устанавливаем имя браузера
-        match browser_name.to_lowercase().as_str() {
+        let driver = match browser_name.to_lowercase().as_str() {
             "chrome" => {
+                let mut caps = Capabilities::new();
                 caps.insert("browserName".to_string(), "chrome".into());
+                
+                // Добавляем настройку headless, если указано в конфигурации
+                if config.browser.headless {
+                    let chrome_options = serde_json::json!({
+                        "args": ["--headless", "--disable-gpu", "--no-sandbox"]
+                    });
+                    caps.insert("goog:chromeOptions".to_string(), chrome_options.into());
+                }
+                
+                WebDriver::new(selenium_url, caps).await?
             },
             "firefox" => {
+                let mut caps = Capabilities::new();
                 caps.insert("browserName".to_string(), "firefox".into());
+                
+                // Добавляем настройку headless, если указано в конфигурации
+                if config.browser.headless {
+                    let firefox_options = serde_json::json!({
+                        "args": ["-headless"]
+                    });
+                    caps.insert("moz:firefoxOptions".to_string(), firefox_options.into());
+                }
+                
+                WebDriver::new(selenium_url, caps).await?
             },
             _ => return Err(anyhow!("Неподдерживаемый браузер: {}", browser_name)),
         };
         
-        // Создаем WebDriver с выбранными capabilities
-        let driver = WebDriver::new("http://localhost:4444", caps).await?;
-        
         // Установка таймаутов
-        driver.set_implicit_wait_timeout(Duration::from_secs(10)).await?;
-        driver.set_page_load_timeout(Duration::from_secs(30)).await?;
+        let timeout = Duration::from_secs(config.environment.timeout);
+        driver.set_implicit_wait_timeout(timeout).await?;
+        driver.set_page_load_timeout(timeout).await?;
         
         Ok(Self { driver })
     }

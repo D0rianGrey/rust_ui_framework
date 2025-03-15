@@ -5,4 +5,4 @@ headless = false
 [environment]
 base_url = "https://www.saucedemo.com"
 timeout = 30
-selenium_url = "http://selenium-hub:4444"  # URL для Selenium Hub в Docker
+selenium_url = "http://localhost:9515"  # URL для ChromeDriver
