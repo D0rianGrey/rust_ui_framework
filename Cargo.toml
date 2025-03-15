@@ -1,0 +1,21 @@
+[package]
+name = "rust_ui_framework"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Библиотека для работы с Selenium WebDriver
+thirtyfour = "0.31.0"
+# Асинхронный рантайм
+tokio = { version = "1", features = ["full"] }
+# Логирование
+log = "0.4"
+env_logger = "0.10"
+# Обработка ошибок
+anyhow = "1.0"
+# Конфигурация
+config = "0.13"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+# Утилиты для тестирования
+rand = "0.8"

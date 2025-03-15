@@ -1,0 +1,7 @@
+[browser]
+name = "chrome"
+headless = false
+
+[environment]
+base_url = "https://www.saucedemo.com"
+timeout = 30
